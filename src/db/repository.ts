@@ -381,6 +381,21 @@ export const repository = {
     })
   },
 
+  async deleteIssue(id: number) {
+    return db.transaction('rw', [db.issues, db.comments, db.attachments, db.activities, db.notifications], async () => {
+      const issue = await db.issues.get(id)
+      if (!issue) {
+        throw new Error('Issue not found.')
+      }
+
+      await db.comments.where('issueId').equals(id).delete()
+      await db.attachments.where('issueId').equals(id).delete()
+      await db.activities.where('issueId').equals(id).delete()
+      await db.notifications.where('issueId').equals(id).delete()
+      await db.issues.delete(id)
+    })
+  },
+
   async updateIssueWithOptionalComment(
     id: number,
     changes: Partial<Issue>,

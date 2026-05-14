@@ -14,6 +14,7 @@ import type {
 } from '../../types/models'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
+import { ConfirmDialog } from '../common/ConfirmDialog'
 
 const statuses: IssueStatus[] = ['Open', 'In Progress', 'Blocked', 'Resolved', 'Closed']
 const priorities: IssuePriority[] = ['Low', 'Medium', 'High', 'Critical']
@@ -51,6 +52,7 @@ interface IssueFormProps {
   onClose: () => void
   onSave: (values: IssueFormValues) => Promise<IssueFormSaveResult>
   onUpdateComment?: (commentId: number, body: string, date: string, actorKey: string) => Promise<void>
+  onDeleteIssue?: (issue: Issue) => Promise<void>
 }
 
 const emptyValues: IssueFormValues = {
@@ -98,6 +100,7 @@ export function IssueForm({
   onClose,
   onSave,
   onUpdateComment,
+  onDeleteIssue,
 }: IssueFormProps) {
   const [values, setValues] = useState<IssueFormValues>(emptyValues)
   const [saving, setSaving] = useState(false)
@@ -110,6 +113,8 @@ export function IssueForm({
   const [editingCommentActorKey, setEditingCommentActorKey] = useState('')
   const [editingCommentError, setEditingCommentError] = useState<string | null>(null)
   const [savingCommentEdit, setSavingCommentEdit] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const currentProjectSites = useMemo(
     () => sites.filter((site) => site.projectId === values.projectId),
@@ -677,15 +682,54 @@ export function IssueForm({
         {submitSuccess ? <p className="text-sm text-emerald-700">{submitSuccess}</p> : null}
         {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
 
-        <div className="sticky bottom-0 flex justify-end gap-2 border-t border-slate-200 bg-white pt-4">
+        <div className="sticky bottom-0 flex items-center justify-between gap-2 border-t border-slate-200 bg-white pt-4">
+          <div>
+            {issue && onDeleteIssue ? (
+              <Button
+                type="button"
+                variant="danger"
+                disabled={deleting || saving}
+                onClick={() => {
+                  setDeleteDialogOpen(true)
+                }}
+              >
+                {deleting ? 'Deleting...' : 'Delete Issue'}
+              </Button>
+            ) : null}
+          </div>
+          <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={!canSubmit || saving}>
+          <Button type="submit" disabled={!canSubmit || saving || deleting}>
             {saving ? 'Saving...' : issue ? 'Save Changes' : 'Create Issue'}
           </Button>
+          </div>
         </div>
       </form>
+      {issue && onDeleteIssue ? (
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          title="Delete Issue"
+          description={`Delete issue "${issue.issueNumber} - ${issue.title}"? This will also remove comments, attachments, activity logs, and notifications.`}
+          confirmLabel="Delete Issue"
+          confirmPending={deleting}
+          onCancel={() => setDeleteDialogOpen(false)}
+          onConfirm={async () => {
+            setSubmitError(null)
+            setSubmitSuccess(null)
+            setDeleting(true)
+            try {
+              await onDeleteIssue(issue)
+              setDeleteDialogOpen(false)
+            } catch (error) {
+              setSubmitError(error instanceof Error ? error.message : 'Unable to delete issue.')
+            } finally {
+              setDeleting(false)
+            }
+          }}
+        />
+      ) : null}
     </Modal>
   )
 }

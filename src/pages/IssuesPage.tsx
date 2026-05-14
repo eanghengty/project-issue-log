@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Button } from '../components/common/Button'
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { EmptyState } from '../components/common/EmptyState'
 import { Modal } from '../components/common/Modal'
 import { ActivityLog } from '../components/issues/ActivityLog'
@@ -37,6 +38,8 @@ export function IssuesPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingIssue, setEditingIssue] = useState<Issue | undefined>(undefined)
   const [activityIssue, setActivityIssue] = useState<Issue | undefined>(undefined)
+  const [deleteIssueTarget, setDeleteIssueTarget] = useState<Issue | undefined>(undefined)
+  const [isDeletingIssue, setIsDeletingIssue] = useState(false)
   const editingIssueComments = useComments(editingIssue?.id)
   const activityEntries = useActivities(activityIssue?.id)
 
@@ -170,6 +173,9 @@ export function IssuesPage() {
         onViewActivity={(issue) => {
           setActivityIssue(issue)
         }}
+        onDeleteIssue={async (issue) => {
+          setDeleteIssueTarget(issue)
+        }}
       />
 
       <IssueForm
@@ -227,6 +233,14 @@ export function IssuesPage() {
           }
           await repository.updateComment(commentId, { body, createdAt: `${date}T00:00:00` }, actorName)
         }}
+        onDeleteIssue={async (issue) => {
+          await repository.deleteIssue(issue.id as number)
+          setFormOpen(false)
+          setEditingIssue(undefined)
+          if (activityIssue?.id === issue.id) {
+            setActivityIssue(undefined)
+          }
+        }}
       />
 
       <Modal
@@ -235,7 +249,7 @@ export function IssuesPage() {
         onClose={() => setActivityIssue(undefined)}
       >
         {activityEntries.length ? (
-          <ActivityLog activities={activityEntries} />
+          <ActivityLog activities={activityEntries} excludeTypes={['comment']} />
         ) : (
           <EmptyState
             title="No activity yet"
@@ -243,6 +257,41 @@ export function IssuesPage() {
           />
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={Boolean(deleteIssueTarget)}
+        title="Delete Issue"
+        description={
+          deleteIssueTarget
+            ? `Delete issue "${deleteIssueTarget.issueNumber} - ${deleteIssueTarget.title}"? This will also remove comments, attachments, activity logs, and notifications.`
+            : ''
+        }
+        confirmLabel="Delete Issue"
+        confirmPending={isDeletingIssue}
+        onCancel={() => setDeleteIssueTarget(undefined)}
+        onConfirm={async () => {
+          if (!deleteIssueTarget?.id) {
+            return
+          }
+
+          setIsDeletingIssue(true)
+          try {
+            await repository.deleteIssue(deleteIssueTarget.id)
+            if (editingIssue?.id === deleteIssueTarget.id) {
+              setFormOpen(false)
+              setEditingIssue(undefined)
+            }
+            if (activityIssue?.id === deleteIssueTarget.id) {
+              setActivityIssue(undefined)
+            }
+            setDeleteIssueTarget(undefined)
+          } catch (error) {
+            window.alert(error instanceof Error ? error.message : 'Unable to delete issue.')
+          } finally {
+            setIsDeletingIssue(false)
+          }
+        }}
+      />
     </div>
   )
 }

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Badge } from '../components/common/Badge'
 import { Button } from '../components/common/Button'
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { EmptyState } from '../components/common/EmptyState'
 import { ActivityLog } from '../components/issues/ActivityLog'
 import { AttachmentList } from '../components/issues/AttachmentList'
@@ -11,6 +12,7 @@ import { useActivities, useAttachments, useComments, useCustomers, useIssue, use
 
 export function IssueDetailPage() {
   const params = useParams()
+  const navigate = useNavigate()
   const issueId = Number(params.id)
 
   const issue = useIssue(Number.isFinite(issueId) ? issueId : undefined)
@@ -23,6 +25,9 @@ export function IssueDetailPage() {
 
   const [commentAuthor, setCommentAuthor] = useState('System User')
   const [commentBody, setCommentBody] = useState('')
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const projectName = useMemo(
     () => projects.find((project) => project.id === issue?.projectId)?.name,
@@ -53,6 +58,16 @@ export function IssueDetailPage() {
           <div className="flex gap-2">
             <Badge kind="status" value={issue.status} />
             <Badge kind="priority" value={issue.priority} />
+            <Button
+              type="button"
+              variant="danger"
+              disabled={isDeleting}
+              onClick={() => {
+                setDeleteDialogOpen(true)
+              }}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Issue'}
+            </Button>
           </div>
         </div>
 
@@ -70,6 +85,7 @@ export function IssueDetailPage() {
             <dd className="font-medium text-slate-800">{customerName}</dd>
           </div>
         </dl>
+        {deleteError ? <p className="mt-3 text-sm text-red-600">{deleteError}</p> : null}
       </header>
 
       <section className="grid gap-4 lg:grid-cols-2">
@@ -126,6 +142,28 @@ export function IssueDetailPage() {
           <ActivityLog activities={activities} />
         </div>
       </section>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Delete Issue"
+        description={`Delete issue "${issue.issueNumber} - ${issue.title}"? This will also remove comments, attachments, activity logs, and notifications.`}
+        confirmLabel="Delete Issue"
+        confirmPending={isDeleting}
+        onCancel={() => setDeleteDialogOpen(false)}
+        onConfirm={async () => {
+          setDeleteError(null)
+          setIsDeleting(true)
+          try {
+            await repository.deleteIssue(issue.id as number)
+            setDeleteDialogOpen(false)
+            navigate('/issues')
+          } catch (error) {
+            setDeleteError(error instanceof Error ? error.message : 'Unable to delete issue.')
+          } finally {
+            setIsDeleting(false)
+          }
+        }}
+      />
     </div>
   )
 }

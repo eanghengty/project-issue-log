@@ -14,6 +14,7 @@ interface IssueTableProps {
   onSortChange: (sort: SortConfig) => void
   onEditIssue?: (issue: Issue) => void
   onViewActivity?: (issue: Issue) => void
+  onDeleteIssue?: (issue: Issue) => void
 }
 
 const headerCell = 'px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[var(--text-faint)]'
@@ -39,6 +40,7 @@ export function IssueTable({
   onSortChange,
   onEditIssue,
   onViewActivity,
+  onDeleteIssue,
 }: IssueTableProps) {
   const requestSort = (field: SortConfig['field']) => {
     if (sort.field === field) {
@@ -80,7 +82,7 @@ export function IssueTable({
                   Due Date {sortIcon(sort.field === 'dueDate', sort.direction)}
                 </button>
               </th>
-              {onEditIssue || onViewActivity ? <th className={headerCell}>Actions</th> : null}
+              {onEditIssue || onViewActivity || onDeleteIssue ? <th className={headerCell}>Actions</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -143,7 +145,7 @@ export function IssueTable({
                       <span className="text-[var(--text-faint)]">-</span>
                     )}
                   </td>
-                  {onEditIssue || onViewActivity ? (
+                  {onEditIssue || onViewActivity || onDeleteIssue ? (
                     <td className="px-3 py-2 text-sm">
                       <div className="flex items-center gap-2">
                         {onViewActivity ? (
@@ -165,6 +167,15 @@ export function IssueTable({
                             Edit
                           </button>
                         ) : null}
+                        {onDeleteIssue ? (
+                          <button
+                            type="button"
+                            className="rounded-md border border-[#b9381a] px-2.5 py-1 text-[12px] font-semibold text-[#b9381a] transition hover:bg-[#fff3ef]"
+                            onClick={() => onDeleteIssue(issue)}
+                          >
+                            Delete
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   ) : null}
@@ -174,7 +185,7 @@ export function IssueTable({
             {!issues.length ? (
               <tr>
                 <td
-                  colSpan={onEditIssue || onViewActivity ? 10 : 9}
+                  colSpan={onEditIssue || onViewActivity || onDeleteIssue ? 10 : 9}
                   className="px-3 py-10 text-center text-sm text-[var(--text-muted)]"
                 >
                   No issues match these filters.
