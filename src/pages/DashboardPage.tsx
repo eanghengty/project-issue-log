@@ -1,7 +1,15 @@
 import { Plus, SlidersHorizontal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { repository } from '../db/repository'
-import { useCustomers, useIssues, useOwners, useProjects, useSites } from '../hooks/useData'
+import {
+  useCustomers,
+  useIssues,
+  useOwners,
+  useProjectCustomerLinks,
+  useProjectOwnerLinks,
+  useProjects,
+  useSites,
+} from '../hooks/useData'
 import { computeDashboardMetrics, countByPriority, countByProject, countByStatus } from '../lib/metrics'
 import type { Issue, IssueFilters, SortConfig } from '../types/models'
 import { SummaryPanel } from '../components/dashboard/SummaryPanel'
@@ -16,6 +24,8 @@ export function DashboardPage() {
   const owners = useOwners()
   const customers = useCustomers()
   const sites = useSites()
+  const projectOwnerLinks = useProjectOwnerLinks()
+  const projectCustomerLinks = useProjectCustomerLinks()
   const issues = useIssues()
 
   const [search, setSearch] = useState('')
@@ -153,6 +163,8 @@ export function DashboardPage() {
         sites={sites}
         owners={owners}
         customers={customers}
+        projectOwnerLinks={projectOwnerLinks}
+        projectCustomerLinks={projectCustomerLinks}
         onClose={() => setFormOpen(false)}
         onSave={async (values: IssueFormValues) => {
           await repository.createIssue({
@@ -168,6 +180,7 @@ export function DashboardPage() {
             dueDate: values.dueDate ? new Date(values.dueDate).toISOString() : undefined,
           })
           await repository.createOverdueNotifications()
+          return { commentAdded: false }
         }}
       />
     </div>

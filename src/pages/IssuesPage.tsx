@@ -6,7 +6,16 @@ import { IssueFilters } from '../components/issues/IssueFilters'
 import { IssueForm, type IssueFormValues } from '../components/issues/IssueForm'
 import { IssueTable } from '../components/issues/IssueTable'
 import { repository } from '../db/repository'
-import { useCustomers, useIssues, useOwners, useProjects, useSites } from '../hooks/useData'
+import {
+  useComments,
+  useCustomers,
+  useIssues,
+  useOwners,
+  useProjectCustomerLinks,
+  useProjectOwnerLinks,
+  useProjects,
+  useSites,
+} from '../hooks/useData'
 import type { Issue, IssueFilters as IssueFiltersType, SortConfig } from '../types/models'
 
 export function IssuesPage() {
@@ -14,6 +23,8 @@ export function IssuesPage() {
   const owners = useOwners()
   const customers = useCustomers()
   const sites = useSites()
+  const projectOwnerLinks = useProjectOwnerLinks()
+  const projectCustomerLinks = useProjectCustomerLinks()
   const issues = useIssues()
 
   const [filters, setFilters] = useState<IssueFiltersType>({ search: '' })
@@ -21,6 +32,7 @@ export function IssuesPage() {
   const [sort, setSort] = useState<SortConfig>({ field: 'updatedAt', direction: 'desc' })
   const [formOpen, setFormOpen] = useState(false)
   const [editingIssue, setEditingIssue] = useState<Issue | undefined>(undefined)
+  const editingIssueComments = useComments(editingIssue?.id)
 
   const projectNames = useMemo(
     () => Object.fromEntries(projects.map((project) => [project.id as number, project.name])),
@@ -41,6 +53,27 @@ export function IssuesPage() {
       ),
     [customers],
   )
+
+  const resolveCommentActor = (commentActorKey: string) => {
+    if (!commentActorKey) {
+      return undefined
+    }
+    const [actorType, actorIdRaw] = commentActorKey.split(':')
+    const actorId = Number(actorIdRaw)
+    if (!Number.isFinite(actorId)) {
+      return undefined
+    }
+
+    if (actorType === 'owner') {
+      return owners.find((owner) => owner.id === actorId)?.name
+    }
+    if (actorType === 'customer') {
+      const customer = customers.find((item) => item.id === actorId)
+      return customer ? `${customer.company} - ${customer.name}` : undefined
+    }
+
+    return undefined
+  }
 
   const sortedFiltered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -128,10 +161,13 @@ export function IssuesPage() {
       <IssueForm
         open={formOpen}
         issue={editingIssue}
+        comments={editingIssueComments}
         projects={projects}
         sites={sites}
         owners={owners}
         customers={customers}
+        projectOwnerLinks={projectOwnerLinks}
+        projectCustomerLinks={projectCustomerLinks}
         onClose={() => {
           setFormOpen(false)
           setEditingIssue(undefined)
@@ -151,16 +187,31 @@ export function IssuesPage() {
           }
 
           if (editingIssue?.id) {
-            await repository.updateIssueWithOptionalComment(
+            const actorName = resolveCommentActor(values.commentActorKey)
+            if (values.updateComment.trim() && !actorName) {
+              throw new Error('Please select a valid comment actor from this project.')
+            }
+            const result = await repository.updateIssueWithOptionalComment(
               editingIssue.id,
               issuePayload,
               values.updateComment,
+              values.updateCommentDate,
+              actorName,
             )
+            await repository.createOverdueNotifications()
+            return result
           } else {
             await repository.createIssue(issuePayload)
+            await repository.createOverdueNotifications()
+            return { commentAdded: false }
           }
-
-          await repository.createOverdueNotifications()
+        }}
+        onUpdateComment={async (commentId, body, date, actorKey) => {
+          const actorName = resolveCommentActor(actorKey)
+          if (!actorName) {
+            throw new Error('Please select a valid comment actor from this project.')
+          }
+          await repository.updateComment(commentId, { body, createdAt: `${date}T00:00:00` }, actorName)
         }}
       />
     </div>

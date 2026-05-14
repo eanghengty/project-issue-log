@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Button } from '../components/common/Button'
-import { loadDemoData } from '../db/seed'
 import { repository } from '../db/repository'
 import { downloadBackup, exportBackup, importBackup } from '../lib/backup'
 
@@ -10,7 +9,7 @@ export function SettingsPage() {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-semibold text-slate-900">Settings</h2>
-      <p className="text-sm text-slate-500">Use backup and demo tools for local-only v1 data management.</p>
+      <p className="text-sm text-slate-500">Use backup tools for local-only v1 data management.</p>
 
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <h3 className="mb-3 text-lg font-semibold text-slate-900">Backup</h3>
@@ -58,24 +57,8 @@ export function SettingsPage() {
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="mb-3 text-lg font-semibold text-slate-900">Demo Data</h3>
+        <h3 className="mb-3 text-lg font-semibold text-slate-900">Data Management</h3>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="secondary"
-            disabled={busy !== null}
-            onClick={async () => {
-              setBusy('seed')
-              try {
-                await loadDemoData()
-                window.alert('Demo data loaded.')
-              } finally {
-                setBusy(null)
-              }
-            }}
-          >
-            {busy === 'seed' ? 'Loading...' : 'Load Demo Data'}
-          </Button>
-
           <Button
             variant="danger"
             disabled={busy !== null}

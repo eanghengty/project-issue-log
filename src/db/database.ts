@@ -7,6 +7,8 @@ import type {
   Issue,
   Notification,
   Owner,
+  ProjectCustomerLink,
+  ProjectOwnerLink,
   Project,
   Site,
 } from '../types/models'
@@ -16,6 +18,8 @@ export class IssueLogDatabase extends Dexie {
   sites!: Table<Site, number>
   owners!: Table<Owner, number>
   customers!: Table<Customer, number>
+  projectOwnerLinks!: Table<ProjectOwnerLink, number>
+  projectCustomerLinks!: Table<ProjectCustomerLink, number>
   issues!: Table<Issue, number>
   comments!: Table<Comment, number>
   activities!: Table<ActivityEntry, number>
@@ -42,6 +46,21 @@ export class IssueLogDatabase extends Dexie {
       sites: '++id, &siteId, siteName, projectId, createdAt, updatedAt',
       owners: '++id, name, email, createdAt',
       customers: '++id, name, company, createdAt',
+      issues:
+        '++id, projectId, siteRefId, issueNumber, status, priority, ownerId, customerId, dueDate, createdAt, updatedAt',
+      comments: '++id, issueId, createdAt',
+      activities: '++id, issueId, type, field, createdAt',
+      attachments: '++id, issueId, createdAt',
+      notifications: '++id, read, type, issueId, createdAt, [type+issueId]',
+    })
+
+    this.version(3).stores({
+      projects: '++id, name, status, createdAt',
+      sites: '++id, &siteId, siteName, projectId, createdAt, updatedAt',
+      owners: '++id, name, email, createdAt',
+      customers: '++id, name, company, createdAt',
+      projectOwnerLinks: '++id, projectId, ownerId, [projectId+ownerId], [ownerId+projectId]',
+      projectCustomerLinks: '++id, projectId, customerId, [projectId+customerId], [customerId+projectId]',
       issues:
         '++id, projectId, siteRefId, issueNumber, status, priority, ownerId, customerId, dueDate, createdAt, updatedAt',
       comments: '++id, issueId, createdAt',

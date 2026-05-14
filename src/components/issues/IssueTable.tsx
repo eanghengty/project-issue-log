@@ -119,8 +119,8 @@ export function IssueTable({
                   <td className="px-3 py-2 text-sm text-slate-600">
                     {issue.siteRefId ? (siteLabels[issue.siteRefId] ?? '-') : '-'}
                   </td>
-                  <td className="px-3 py-2 text-sm text-slate-600">{ownerNames[issue.ownerId]}</td>
-                  <td className="px-3 py-2 text-sm text-slate-600">{customerNames[issue.customerId]}</td>
+                  <td className="px-3 py-2 text-sm text-slate-600">{ownerNames[issue.ownerId] ?? 'Unassigned'}</td>
+                  <td className="px-3 py-2 text-sm text-slate-600">{customerNames[issue.customerId] ?? 'Unassigned'}</td>
                   <td className="px-3 py-2 text-sm">
                     <span className={overdue ? 'font-medium text-red-600' : 'text-slate-600'}>
                       {issue.dueDate ? format(new Date(issue.dueDate), 'dd MMM yyyy') : '-'}

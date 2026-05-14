@@ -19,6 +19,14 @@ export function useCustomers() {
   return useLiveQuery(() => db.customers.orderBy('name').toArray(), [], []) ?? []
 }
 
+export function useProjectOwnerLinks() {
+  return useLiveQuery(() => db.projectOwnerLinks.toArray(), [], []) ?? []
+}
+
+export function useProjectCustomerLinks() {
+  return useLiveQuery(() => db.projectCustomerLinks.toArray(), [], []) ?? []
+}
+
 export function useIssues() {
   return useLiveQuery(() => db.issues.orderBy('updatedAt').reverse().toArray(), [], []) ?? []
 }
@@ -30,7 +38,7 @@ export function useIssue(id: number | undefined) {
 export function useComments(issueId: number | undefined) {
   return (
     useLiveQuery(
-      () => (issueId ? db.comments.where('issueId').equals(issueId).reverse().sortBy('createdAt') : []),
+      () => (issueId ? db.comments.where('issueId').equals(issueId).sortBy('createdAt') : []),
       [issueId],
       [],
     ) ?? []

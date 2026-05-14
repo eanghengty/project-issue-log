@@ -11,6 +11,13 @@ Issue Log Tracker is a local-first React SPA for tracking issues across projects
 - Do not: perform direct Dexie write calls in components/pages.
 - Do not: bypass activity/notification side effects when changing issue flows.
 
+## Current Product Rules (Do Not Regress)
+- Project-to-owner/customer linking is managed in `Projects` page via the Assignments panel (project-centric UX).
+- `Owners` and `Customers` pages are profile-management pages; do not reintroduce editable project-link checklists there.
+- Issue modal owner/customer options are strictly scoped to the selected project links.
+- Edit Issue modal comment actor must be chosen from project-linked participants (grouped `Owners` and `Customers`), not free text defaults.
+- Issue comments are displayed in chronological order (oldest to newest).
+
 ## Run and Test Commands
 - Install: `npm install`
 - Dev server: `npm run dev`

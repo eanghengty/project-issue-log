@@ -45,6 +45,18 @@ export interface Customer {
   createdAt: string
 }
 
+export interface ProjectOwnerLink {
+  id?: number
+  projectId: number
+  ownerId: number
+}
+
+export interface ProjectCustomerLink {
+  id?: number
+  projectId: number
+  customerId: number
+}
+
 export interface Issue {
   id?: number
   projectId: number

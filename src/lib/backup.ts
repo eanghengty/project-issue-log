@@ -8,6 +8,8 @@ import type {
   Issue,
   Notification,
   Owner,
+  ProjectCustomerLink,
+  ProjectOwnerLink,
   Project,
   Site,
 } from '../types/models'
@@ -34,7 +36,13 @@ interface BackupPayloadV2 extends Omit<BackupPayloadV1, 'version'> {
   sites: Site[]
 }
 
-type BackupPayload = BackupPayloadV1 | BackupPayloadV2
+interface BackupPayloadV3 extends Omit<BackupPayloadV2, 'version'> {
+  version: 3
+  projectOwnerLinks: ProjectOwnerLink[]
+  projectCustomerLinks: ProjectCustomerLink[]
+}
+
+type BackupPayload = BackupPayloadV1 | BackupPayloadV2 | BackupPayloadV3
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -51,12 +59,26 @@ async function dataUrlToBlob(dataUrl: string) {
 }
 
 export async function exportBackup(): Promise<BackupPayload> {
-  const [projects, sites, owners, customers, issues, comments, activities, attachments, notifications] =
+  const [
+    projects,
+    sites,
+    owners,
+    customers,
+    projectOwnerLinks,
+    projectCustomerLinks,
+    issues,
+    comments,
+    activities,
+    attachments,
+    notifications,
+  ] =
     await Promise.all([
       db.projects.toArray(),
       db.sites.toArray(),
       db.owners.toArray(),
       db.customers.toArray(),
+      db.projectOwnerLinks.toArray(),
+      db.projectCustomerLinks.toArray(),
       db.issues.toArray(),
       db.comments.toArray(),
       db.activities.toArray(),
@@ -72,12 +94,14 @@ export async function exportBackup(): Promise<BackupPayload> {
   )
 
   return {
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     projects,
     sites,
     owners,
     customers,
+    projectOwnerLinks,
+    projectCustomerLinks,
     issues,
     comments,
     activities,
@@ -102,7 +126,7 @@ export async function importBackup(file: File) {
   const raw = await file.text()
   const payload = JSON.parse(raw) as BackupPayload
 
-  if (payload.version !== 1 && payload.version !== 2) {
+  if (payload.version !== 1 && payload.version !== 2 && payload.version !== 3) {
     throw new Error('Unsupported backup version')
   }
 
@@ -115,9 +139,11 @@ export async function importBackup(file: File) {
 
   await repository.bulkImport({
     projects: payload.projects,
-    sites: payload.version === 2 ? payload.sites : [],
+    sites: payload.version === 1 ? [] : payload.sites,
     owners: payload.owners,
     customers: payload.customers,
+    projectOwnerLinks: payload.version === 3 ? payload.projectOwnerLinks : [],
+    projectCustomerLinks: payload.version === 3 ? payload.projectCustomerLinks : [],
     issues: payload.issues,
     comments: payload.comments,
     activities: payload.activities,

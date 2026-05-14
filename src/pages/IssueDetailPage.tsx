@@ -28,9 +28,12 @@ export function IssueDetailPage() {
     () => projects.find((project) => project.id === issue?.projectId)?.name,
     [projects, issue],
   )
-  const ownerName = useMemo(() => owners.find((owner) => owner.id === issue?.ownerId)?.name, [owners, issue])
+  const ownerName = useMemo(
+    () => owners.find((owner) => owner.id === issue?.ownerId)?.name ?? 'Unassigned',
+    [owners, issue],
+  )
   const customerName = useMemo(
-    () => customers.find((customer) => customer.id === issue?.customerId)?.company,
+    () => customers.find((customer) => customer.id === issue?.customerId)?.company ?? 'Unassigned',
     [customers, issue],
   )
 
