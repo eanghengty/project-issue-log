@@ -14,9 +14,9 @@ interface IssueFiltersProps {
 
 export function IssueFilters({ filters, projects, owners, customers, onChange }: IssueFiltersProps) {
   return (
-    <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-5">
+    <div className="grid gap-3 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-primary)] p-4 shadow-[var(--shadow-soft)] md:grid-cols-5">
       <select
-        className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
+        className="h-10 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-primary)] px-3 text-sm text-[var(--text-default)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
         value={filters.projectId ?? ''}
         onChange={(event) =>
           onChange({ ...filters, projectId: event.target.value ? Number(event.target.value) : undefined })
@@ -31,7 +31,7 @@ export function IssueFilters({ filters, projects, owners, customers, onChange }:
       </select>
 
       <select
-        className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
+        className="h-10 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-primary)] px-3 text-sm text-[var(--text-default)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
         value={filters.ownerId ?? ''}
         onChange={(event) =>
           onChange({ ...filters, ownerId: event.target.value ? Number(event.target.value) : undefined })
@@ -46,7 +46,7 @@ export function IssueFilters({ filters, projects, owners, customers, onChange }:
       </select>
 
       <select
-        className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
+        className="h-10 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-primary)] px-3 text-sm text-[var(--text-default)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
         value={filters.customerId ?? ''}
         onChange={(event) =>
           onChange({ ...filters, customerId: event.target.value ? Number(event.target.value) : undefined })
@@ -61,7 +61,7 @@ export function IssueFilters({ filters, projects, owners, customers, onChange }:
       </select>
 
       <select
-        className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
+        className="h-10 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-primary)] px-3 text-sm text-[var(--text-default)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
         value={filters.status ?? ''}
         onChange={(event) =>
           onChange({
@@ -80,7 +80,7 @@ export function IssueFilters({ filters, projects, owners, customers, onChange }:
 
       <div className="flex gap-2">
         <select
-          className="h-10 flex-1 rounded-lg border border-slate-200 px-3 text-sm"
+          className="h-10 flex-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-primary)] px-3 text-sm text-[var(--text-default)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
           value={filters.priority ?? ''}
           onChange={(event) =>
             onChange({
@@ -99,6 +99,7 @@ export function IssueFilters({ filters, projects, owners, customers, onChange }:
 
         <Button
           variant="ghost"
+          className="border border-[var(--border-soft)]"
           onClick={() =>
             onChange({
               search: filters.search,

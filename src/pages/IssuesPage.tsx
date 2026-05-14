@@ -1,12 +1,16 @@
 import { Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Button } from '../components/common/Button'
+import { EmptyState } from '../components/common/EmptyState'
+import { Modal } from '../components/common/Modal'
+import { ActivityLog } from '../components/issues/ActivityLog'
 import { SearchInput } from '../components/common/SearchInput'
 import { IssueFilters } from '../components/issues/IssueFilters'
 import { IssueForm, type IssueFormValues } from '../components/issues/IssueForm'
 import { IssueTable } from '../components/issues/IssueTable'
 import { repository } from '../db/repository'
 import {
+  useActivities,
   useComments,
   useCustomers,
   useIssues,
@@ -32,7 +36,9 @@ export function IssuesPage() {
   const [sort, setSort] = useState<SortConfig>({ field: 'updatedAt', direction: 'desc' })
   const [formOpen, setFormOpen] = useState(false)
   const [editingIssue, setEditingIssue] = useState<Issue | undefined>(undefined)
+  const [activityIssue, setActivityIssue] = useState<Issue | undefined>(undefined)
   const editingIssueComments = useComments(editingIssue?.id)
+  const activityEntries = useActivities(activityIssue?.id)
 
   const projectNames = useMemo(
     () => Object.fromEntries(projects.map((project) => [project.id as number, project.name])),
@@ -125,22 +131,27 @@ export function IssuesPage() {
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold text-slate-900">Issues</h2>
-          <p className="text-sm text-slate-500">Search, filter, sort, and manage the full issue register.</p>
+      <header className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-primary)] p-5 shadow-[var(--shadow-soft)]">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-faint)]">Issue Register</p>
+            <h2 className="mt-1 text-2xl font-semibold text-[var(--text-strong)]">Issues</h2>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">Search, filter, sort, and manage the full issue register.</p>
+          </div>
+          <Button
+            onClick={() => {
+              setEditingIssue(undefined)
+              setFormOpen(true)
+            }}
+          >
+            <Plus size={16} /> Add Issue
+          </Button>
         </div>
-        <Button
-          onClick={() => {
-            setEditingIssue(undefined)
-            setFormOpen(true)
-          }}
-        >
-          <Plus size={16} /> Add Issue
-        </Button>
       </header>
 
-      <SearchInput value={search} onChange={setSearch} placeholder="Search issues" />
+      <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-primary)] p-3 shadow-[var(--shadow-soft)]">
+        <SearchInput value={search} onChange={setSearch} placeholder="Search issues" hint="Ctrl+K" />
+      </div>
 
       <IssueFilters filters={filters} onChange={setFilters} projects={projects} owners={owners} customers={customers} />
 
@@ -155,6 +166,9 @@ export function IssuesPage() {
         onEditIssue={(issue) => {
           setEditingIssue(issue)
           setFormOpen(true)
+        }}
+        onViewActivity={(issue) => {
+          setActivityIssue(issue)
         }}
       />
 
@@ -214,6 +228,21 @@ export function IssuesPage() {
           await repository.updateComment(commentId, { body, createdAt: `${date}T00:00:00` }, actorName)
         }}
       />
+
+      <Modal
+        open={Boolean(activityIssue)}
+        title={activityIssue ? `Activity Log - ${activityIssue.issueNumber} - ${activityIssue.title}` : 'Activity Log'}
+        onClose={() => setActivityIssue(undefined)}
+      >
+        {activityEntries.length ? (
+          <ActivityLog activities={activityEntries} />
+        ) : (
+          <EmptyState
+            title="No activity yet"
+            description="This issue does not have activity entries yet."
+          />
+        )}
+      </Modal>
     </div>
   )
 }

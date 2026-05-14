@@ -22,6 +22,12 @@ Issue Log Tracker is a local-first React SPA for tracking issues across projects
 - Edit Issue modal supports backdated comments using a required date (date-only) when a new update comment is entered.
 - Existing comments are editable in the Edit Issue modal comment history (text + date), and edits must create activity log entries.
 - Issue comments are displayed in chronological order (oldest to newest).
+- Dashboard summary interactions are functional controls, not display-only:
+  - metric cards and summary chart elements must filter the dashboard detail issue table,
+  - summary-driven filters must combine with existing search/manual filters.
+- Dashboard cards show small "new added" badges as "created today" counts derived from issue `createdAt`; keep overdue badge as danger tone and other badges neutral.
+- Sidebar must remain visually stable on tall pages: shell owns viewport scroll boundaries, sidebar stays full-height, and only sidebar nav region scrolls when needed.
+- Issues page table includes an `Activity` row action that opens a read-only in-app popup with the full issue activity log.
 
 ## Run and Test Commands
 - Install: `npm install`

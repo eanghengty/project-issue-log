@@ -9,10 +9,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const styles: Record<Variant, string> = {
-  primary: 'bg-slate-900 text-white hover:bg-slate-700',
-  secondary: 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50',
-  ghost: 'bg-transparent text-slate-600 hover:bg-slate-100',
-  danger: 'bg-red-600 text-white hover:bg-red-500',
+  primary: 'border border-[#1f2a3a] bg-[#1f2a3a] text-white hover:bg-[#172130] hover:border-[#172130]',
+  secondary:
+    'border border-[var(--border-soft)] bg-[var(--surface-primary)] text-[var(--text-default)] hover:bg-[var(--surface-hover)]',
+  ghost: 'border border-transparent bg-transparent text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]',
+  danger: 'border border-[#b9381a] bg-[#b9381a] text-white hover:bg-[#9f2f14] hover:border-[#9f2f14]',
 }
 
 export function Button({
@@ -25,7 +26,7 @@ export function Button({
   return (
     <button
       className={clsx(
-        'inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50',
+        'inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50',
         styles[variant],
         fullWidth && 'w-full',
         className,

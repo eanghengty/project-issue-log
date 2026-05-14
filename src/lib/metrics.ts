@@ -49,6 +49,7 @@ export function countByProject(issues: Issue[], projectNames: Record<number, str
   }
 
   return [...map.entries()].map(([id, value]) => ({
+    id,
     name: projectNames[id] ?? `Project ${id}`,
     value,
   }))

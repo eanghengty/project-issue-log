@@ -2,18 +2,33 @@ import clsx from 'clsx'
 import type { IssuePriority, IssueStatus } from '../../types/models'
 
 const statusStyle: Record<IssueStatus, string> = {
-  Open: 'bg-blue-50 text-blue-700',
-  'In Progress': 'bg-amber-50 text-amber-700',
-  Blocked: 'bg-red-50 text-red-700',
-  Resolved: 'bg-emerald-50 text-emerald-700',
-  Closed: 'bg-slate-100 text-slate-700',
+  Open: 'bg-[#eaf1fe] text-[#1f4ba5]',
+  'In Progress': 'bg-[#fdf0dc] text-[#a3561d]',
+  Blocked: 'bg-[#fde7e4] text-[#b33a2a]',
+  Resolved: 'bg-[#e7f6ee] text-[#26784d]',
+  Closed: 'bg-[#edf1f7] text-[#4d5f76]',
 }
 
 const priorityStyle: Record<IssuePriority, string> = {
-  Low: 'bg-slate-100 text-slate-700',
-  Medium: 'bg-sky-50 text-sky-700',
-  High: 'bg-orange-50 text-orange-700',
-  Critical: 'bg-red-100 text-red-700',
+  Low: 'bg-[#edf1f7] text-[#4d5f76]',
+  Medium: 'bg-[#e7f0ff] text-[#2e63d5]',
+  High: 'bg-[#fdf0dc] text-[#a3561d]',
+  Critical: 'bg-[#fde7e4] text-[#b33a2a]',
+}
+
+const statusDotStyle: Record<IssueStatus, string> = {
+  Open: 'bg-[#2e63d5]',
+  'In Progress': 'bg-[#d9873a]',
+  Blocked: 'bg-[#d05f4a]',
+  Resolved: 'bg-[#2f8a5f]',
+  Closed: 'bg-[#718197]',
+}
+
+const priorityDotStyle: Record<IssuePriority, string> = {
+  Low: 'bg-[#718197]',
+  Medium: 'bg-[#2e63d5]',
+  High: 'bg-[#d9873a]',
+  Critical: 'bg-[#d05f4a]',
 }
 
 interface BadgeProps {
@@ -22,13 +37,16 @@ interface BadgeProps {
 }
 
 export function Badge({ value, kind }: BadgeProps) {
+  const dotClass = kind === 'status' ? statusDotStyle[value as IssueStatus] : priorityDotStyle[value as IssuePriority]
+
   return (
     <span
       className={clsx(
-        'inline-flex rounded-full px-2.5 py-1 text-xs font-medium',
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold',
         kind === 'status' ? statusStyle[value as IssueStatus] : priorityStyle[value as IssuePriority],
       )}
     >
+      <span className={clsx('h-1.5 w-1.5 rounded-full', dotClass)} />
       {value}
     </span>
   )

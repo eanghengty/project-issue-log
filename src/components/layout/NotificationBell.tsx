@@ -84,12 +84,12 @@ export function NotificationBell({ notifications }: NotificationBellProps) {
       <button
         ref={triggerRef}
         type="button"
-        className="relative rounded-lg p-2 text-slate-200 hover:bg-slate-700"
+        className="relative rounded-lg border border-[var(--border-soft)] bg-[var(--surface-primary)] p-2 text-[var(--text-muted)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]"
         onClick={() => setOpen((prev) => !prev)}
       >
         <Bell size={18} />
         {unread > 0 ? (
-          <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+          <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#dd5e32] px-1 text-xs font-bold text-white">
             {unread}
           </span>
         ) : null}
@@ -98,18 +98,18 @@ export function NotificationBell({ notifications }: NotificationBellProps) {
       {open ? (
         <div
           ref={popupRef}
-          className="fixed z-30 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+          className="fixed z-30 overflow-hidden rounded-xl border border-[var(--border-soft)] bg-[var(--surface-primary)] shadow-[0_16px_40px_-16px_rgba(16,24,40,0.38)]"
           style={{
             top: position.top,
             left: position.left,
             width: position.width,
           }}
         >
-          <div className="flex items-center justify-between border-b border-slate-200 p-3">
-            <h3 className="text-sm font-semibold text-slate-800">Notifications</h3>
+          <div className="flex items-center justify-between border-b border-[var(--border-soft)] p-3">
+            <h3 className="text-sm font-semibold text-[var(--text-strong)]">Notifications</h3>
             <button
               type="button"
-              className="text-xs text-slate-500 hover:text-slate-700"
+              className="rounded-md px-1 py-0.5 text-xs text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]"
               onClick={() => {
                 void repository.markAllNotificationsRead()
               }}
@@ -117,23 +117,23 @@ export function NotificationBell({ notifications }: NotificationBellProps) {
               Mark all read
             </button>
           </div>
-          <div className="max-h-80 overflow-auto">
+          <div className="max-h-80 overflow-auto bg-[var(--surface-primary)]">
             {notifications.length === 0 ? (
-              <p className="p-4 text-sm text-slate-500">No notifications yet.</p>
+              <p className="p-4 text-sm text-[var(--text-muted)]">No notifications yet.</p>
             ) : (
               notifications.slice(0, 20).map((notification) => (
                 <button
                   type="button"
                   key={notification.id}
-                  className="block w-full border-b border-slate-100 px-3 py-2 text-left hover:bg-slate-50"
+                  className="block w-full border-b border-[var(--border-soft)] px-3 py-2 text-left transition last:border-b-0 hover:bg-[var(--surface-hover)]"
                   onClick={() => {
                     if (notification.id) {
                       void repository.markNotificationRead(notification.id)
                     }
                   }}
                 >
-                  <p className="text-sm text-slate-700">{notification.message}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-sm text-[var(--text-default)]">{notification.message}</p>
+                  <p className="text-xs text-[var(--text-faint)]">
                     {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                   </p>
                 </button>

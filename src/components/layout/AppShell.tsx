@@ -33,10 +33,10 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [notifications])
 
   return (
-    <div className="flex min-h-screen bg-slate-100">
+    <div className="flex h-screen overflow-hidden bg-[var(--app-bg)] text-[var(--text-strong)]">
       <Sidebar notifications={notifications} />
-      <main className="flex-1 overflow-auto">
-        <div className="p-6">{children}</div>
+      <main className="min-w-0 flex-1 overflow-y-auto bg-[var(--surface-primary)]">
+        <div className="mx-auto w-full max-w-[1560px] p-4 md:p-6">{children}</div>
       </main>
     </div>
   )
