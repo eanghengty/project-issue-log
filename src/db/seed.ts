@@ -46,9 +46,28 @@ export async function loadDemoData() {
     }),
   ])
 
+  const siteIds = await Promise.all([
+    repository.createSite({
+      siteId: 'AP-01',
+      siteName: 'North Runway Drainage',
+      projectId: projectIds[0],
+    }),
+    repository.createSite({
+      siteId: 'BR-22',
+      siteName: 'East Span Support',
+      projectId: projectIds[1],
+    }),
+    repository.createSite({
+      siteId: 'RS-05',
+      siteName: 'Cabinet Cluster A',
+      projectId: projectIds[2],
+    }),
+  ])
+
   const issueIds = await Promise.all([
     repository.createIssue({
       projectId: projectIds[0],
+      siteRefId: siteIds[0],
       title: 'Drainage trench depth mismatch',
       description: 'As-built trench depth does not match approved drawings on chainage 1.2-1.6.',
       status: 'Open',
@@ -60,6 +79,7 @@ export async function loadDemoData() {
     }, 'Seeder'),
     repository.createIssue({
       projectId: projectIds[1],
+      siteRefId: siteIds[1],
       title: 'Bearing plate delivery delay',
       description: 'Supplier revised ETA by 5 days. Sequence impact under review.',
       status: 'In Progress',
@@ -71,6 +91,7 @@ export async function loadDemoData() {
     }, 'Seeder'),
     repository.createIssue({
       projectId: projectIds[2],
+      siteRefId: siteIds[2],
       title: 'Signal cabinet grounding defect',
       description: 'Ground resistance exceeds tolerance during commissioning test.',
       status: 'Blocked',

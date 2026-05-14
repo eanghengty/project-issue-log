@@ -1,7 +1,7 @@
 import { Plus, SlidersHorizontal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { repository } from '../db/repository'
-import { useCustomers, useIssues, useOwners, useProjects } from '../hooks/useData'
+import { useCustomers, useIssues, useOwners, useProjects, useSites } from '../hooks/useData'
 import { computeDashboardMetrics, countByPriority, countByProject, countByStatus } from '../lib/metrics'
 import type { Issue, IssueFilters, SortConfig } from '../types/models'
 import { SummaryPanel } from '../components/dashboard/SummaryPanel'
@@ -15,6 +15,7 @@ export function DashboardPage() {
   const projects = useProjects()
   const owners = useOwners()
   const customers = useCustomers()
+  const sites = useSites()
   const issues = useIssues()
 
   const [search, setSearch] = useState('')
@@ -39,6 +40,11 @@ export function DashboardPage() {
         customers.map((customer) => [customer.id as number, `${customer.company} - ${customer.name}`]),
       ),
     [customers],
+  )
+
+  const siteLabels = useMemo(
+    () => Object.fromEntries(sites.map((site) => [site.id as number, `${site.siteId} - ${site.siteName}`])),
+    [sites],
   )
 
   const filteredIssues = useMemo(() => {
@@ -71,6 +77,10 @@ export function DashboardPage() {
             ? ownerNames[a.ownerId] ?? ''
             : sort.field === 'customer'
               ? customerNames[a.customerId] ?? ''
+              : sort.field === 'site'
+                ? a.siteRefId
+                  ? siteLabels[a.siteRefId] ?? ''
+                  : ''
               : (a[sort.field as keyof Issue] ?? '')
       const valueB =
         sort.field === 'project'
@@ -79,13 +89,17 @@ export function DashboardPage() {
             ? ownerNames[b.ownerId] ?? ''
             : sort.field === 'customer'
               ? customerNames[b.customerId] ?? ''
+              : sort.field === 'site'
+                ? b.siteRefId
+                  ? siteLabels[b.siteRefId] ?? ''
+                  : ''
               : (b[sort.field as keyof Issue] ?? '')
 
       return String(valueA).localeCompare(String(valueB)) * multiplier
     }
 
     return base.sort(compare)
-  }, [issues, filters, search, sort, projectNames, ownerNames, customerNames])
+  }, [issues, filters, search, sort, projectNames, ownerNames, customerNames, siteLabels])
 
   const metrics = useMemo(() => computeDashboardMetrics(issues), [issues])
 
@@ -125,6 +139,7 @@ export function DashboardPage() {
         <IssueTable
           issues={filteredIssues.slice(0, 8)}
           projectNames={projectNames}
+          siteLabels={siteLabels}
           ownerNames={ownerNames}
           customerNames={customerNames}
           sort={sort}
@@ -135,12 +150,21 @@ export function DashboardPage() {
       <IssueForm
         open={formOpen}
         projects={projects}
+        sites={sites}
         owners={owners}
         customers={customers}
         onClose={() => setFormOpen(false)}
         onSave={async (values: IssueFormValues) => {
           await repository.createIssue({
-            ...values,
+            projectId: values.projectId,
+            siteRefId: values.siteRefId,
+            title: values.title,
+            description: values.description,
+            status: values.status,
+            priority: values.priority,
+            category: values.category,
+            ownerId: values.ownerId,
+            customerId: values.customerId,
             dueDate: values.dueDate ? new Date(values.dueDate).toISOString() : undefined,
           })
           await repository.createOverdueNotifications()

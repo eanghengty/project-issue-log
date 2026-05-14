@@ -19,6 +19,15 @@ export interface Project {
   updatedAt: string
 }
 
+export interface Site {
+  id?: number
+  siteId: string
+  siteName: string
+  projectId: number
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Owner {
   id?: number
   name: string
@@ -39,6 +48,7 @@ export interface Customer {
 export interface Issue {
   id?: number
   projectId: number
+  siteRefId?: number
   issueNumber: string
   title: string
   description: string
@@ -101,7 +111,7 @@ export interface IssueFilters {
 }
 
 export interface SortConfig {
-  field: keyof Issue | 'project' | 'owner' | 'customer'
+  field: keyof Issue | 'project' | 'owner' | 'customer' | 'site'
   direction: 'asc' | 'desc'
 }
 

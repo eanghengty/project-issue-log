@@ -7,6 +7,7 @@ import { Badge } from '../common/Badge'
 interface IssueTableProps {
   issues: Issue[]
   projectNames: Record<number, string>
+  siteLabels: Record<number, string>
   ownerNames: Record<number, string>
   customerNames: Record<number, string>
   sort: SortConfig
@@ -26,6 +27,7 @@ function sortIcon(active: boolean, direction: 'asc' | 'desc') {
 export function IssueTable({
   issues,
   projectNames,
+  siteLabels,
   ownerNames,
   customerNames,
   sort,
@@ -68,6 +70,15 @@ export function IssueTable({
               </th>
               <th className={headerCell}>Status</th>
               <th className={headerCell}>Priority</th>
+              <th className={headerCell}>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1"
+                  onClick={() => requestSort('site')}
+                >
+                  Site {sortIcon(sort.field === 'site', sort.direction)}
+                </button>
+              </th>
               <th className={headerCell}>Owner</th>
               <th className={headerCell}>Customer</th>
               <th className={headerCell}>
@@ -104,6 +115,9 @@ export function IssueTable({
                   </td>
                   <td className="px-3 py-2">
                     <Badge kind="priority" value={issue.priority} />
+                  </td>
+                  <td className="px-3 py-2 text-sm text-slate-600">
+                    {issue.siteRefId ? (siteLabels[issue.siteRefId] ?? '-') : '-'}
                   </td>
                   <td className="px-3 py-2 text-sm text-slate-600">{ownerNames[issue.ownerId]}</td>
                   <td className="px-3 py-2 text-sm text-slate-600">{customerNames[issue.customerId]}</td>

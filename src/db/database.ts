@@ -8,10 +8,12 @@ import type {
   Notification,
   Owner,
   Project,
+  Site,
 } from '../types/models'
 
 export class IssueLogDatabase extends Dexie {
   projects!: Table<Project, number>
+  sites!: Table<Site, number>
   owners!: Table<Owner, number>
   customers!: Table<Customer, number>
   issues!: Table<Issue, number>
@@ -29,6 +31,19 @@ export class IssueLogDatabase extends Dexie {
       customers: '++id, name, company, createdAt',
       issues:
         '++id, projectId, issueNumber, status, priority, ownerId, customerId, dueDate, createdAt, updatedAt',
+      comments: '++id, issueId, createdAt',
+      activities: '++id, issueId, type, field, createdAt',
+      attachments: '++id, issueId, createdAt',
+      notifications: '++id, read, type, issueId, createdAt, [type+issueId]',
+    })
+
+    this.version(2).stores({
+      projects: '++id, name, status, createdAt',
+      sites: '++id, &siteId, siteName, projectId, createdAt, updatedAt',
+      owners: '++id, name, email, createdAt',
+      customers: '++id, name, company, createdAt',
+      issues:
+        '++id, projectId, siteRefId, issueNumber, status, priority, ownerId, customerId, dueDate, createdAt, updatedAt',
       comments: '++id, issueId, createdAt',
       activities: '++id, issueId, type, field, createdAt',
       attachments: '++id, issueId, createdAt',

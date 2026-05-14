@@ -6,13 +6,14 @@ import { IssueFilters } from '../components/issues/IssueFilters'
 import { IssueForm, type IssueFormValues } from '../components/issues/IssueForm'
 import { IssueTable } from '../components/issues/IssueTable'
 import { repository } from '../db/repository'
-import { useCustomers, useIssues, useOwners, useProjects } from '../hooks/useData'
+import { useCustomers, useIssues, useOwners, useProjects, useSites } from '../hooks/useData'
 import type { Issue, IssueFilters as IssueFiltersType, SortConfig } from '../types/models'
 
 export function IssuesPage() {
   const projects = useProjects()
   const owners = useOwners()
   const customers = useCustomers()
+  const sites = useSites()
   const issues = useIssues()
 
   const [filters, setFilters] = useState<IssueFiltersType>({ search: '' })
@@ -28,6 +29,10 @@ export function IssuesPage() {
   const ownerNames = useMemo(
     () => Object.fromEntries(owners.map((owner) => [owner.id as number, owner.name])),
     [owners],
+  )
+  const siteLabels = useMemo(
+    () => Object.fromEntries(sites.map((site) => [site.id as number, `${site.siteId} - ${site.siteName}`])),
+    [sites],
   )
   const customerNames = useMemo(
     () =>
@@ -73,6 +78,9 @@ export function IssuesPage() {
       if (sort.field === 'customer') {
         return customerNames[issue.customerId] ?? ''
       }
+      if (sort.field === 'site') {
+        return issue.siteRefId ? (siteLabels[issue.siteRefId] ?? '') : ''
+      }
       return String(issue[sort.field as keyof Issue] ?? '')
     }
 
@@ -80,7 +88,7 @@ export function IssuesPage() {
       const dir = sort.direction === 'asc' ? 1 : -1
       return valueFor(a).localeCompare(valueFor(b)) * dir
     })
-  }, [issues, search, filters, sort, projectNames, ownerNames, customerNames])
+  }, [issues, search, filters, sort, projectNames, ownerNames, customerNames, siteLabels])
 
   return (
     <div className="space-y-4">
@@ -106,6 +114,7 @@ export function IssuesPage() {
       <IssueTable
         issues={sortedFiltered}
         projectNames={projectNames}
+        siteLabels={siteLabels}
         ownerNames={ownerNames}
         customerNames={customerNames}
         sort={sort}
@@ -120,6 +129,7 @@ export function IssuesPage() {
         open={formOpen}
         issue={editingIssue}
         projects={projects}
+        sites={sites}
         owners={owners}
         customers={customers}
         onClose={() => {
@@ -127,18 +137,27 @@ export function IssuesPage() {
           setEditingIssue(undefined)
         }}
         onSave={async (values: IssueFormValues) => {
+          const issuePayload = {
+            projectId: values.projectId,
+            siteRefId: values.siteRefId,
+            title: values.title,
+            description: values.description,
+            status: values.status,
+            priority: values.priority,
+            category: values.category,
+            ownerId: values.ownerId,
+            customerId: values.customerId,
+            dueDate: values.dueDate ? new Date(values.dueDate).toISOString() : undefined,
+          }
+
           if (editingIssue?.id) {
-            await repository.updateIssue(editingIssue.id, {
-              ...values,
-              category: values.category,
-              dueDate: values.dueDate ? new Date(values.dueDate).toISOString() : undefined,
-            })
+            await repository.updateIssueWithOptionalComment(
+              editingIssue.id,
+              issuePayload,
+              values.updateComment,
+            )
           } else {
-            await repository.createIssue({
-              ...values,
-              category: values.category,
-              dueDate: values.dueDate ? new Date(values.dueDate).toISOString() : undefined,
-            })
+            await repository.createIssue(issuePayload)
           }
 
           await repository.createOverdueNotifications()

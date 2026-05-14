@@ -7,6 +7,10 @@ export function useProjects() {
   )
 }
 
+export function useSites() {
+  return useLiveQuery(() => db.sites.orderBy('siteName').toArray(), [], []) ?? []
+}
+
 export function useOwners() {
   return useLiveQuery(() => db.owners.orderBy('name').toArray(), [], []) ?? []
 }

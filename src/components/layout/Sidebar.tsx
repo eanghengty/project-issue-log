@@ -1,4 +1,12 @@
-import { LayoutDashboard, FolderKanban, Users, Building2, CircleUserRound, Settings } from 'lucide-react'
+import {
+  LayoutDashboard,
+  FolderKanban,
+  Users,
+  Building2,
+  CircleUserRound,
+  MapPinned,
+  Settings,
+} from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { NotificationBell } from './NotificationBell'
 import type { Notification } from '../../types/models'
@@ -7,6 +15,7 @@ const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/issues', label: 'Issues', icon: FolderKanban },
   { to: '/projects', label: 'Projects', icon: Building2 },
+  { to: '/sites', label: 'Site Management', icon: MapPinned },
   { to: '/owners', label: 'Owners', icon: CircleUserRound },
   { to: '/customers', label: 'Customers', icon: Users },
   { to: '/settings', label: 'Settings', icon: Settings },

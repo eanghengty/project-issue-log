@@ -9,6 +9,7 @@ import { IssuesPage } from './pages/IssuesPage'
 import { OwnersPage } from './pages/OwnersPage'
 import { ProjectsPage } from './pages/ProjectsPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { SitesPage } from './pages/SitesPage'
 
 function App() {
   useEffect(() => {
@@ -27,6 +28,7 @@ function App() {
           <Route path="/issues" element={<IssuesPage />} />
           <Route path="/issues/:id" element={<IssueDetailPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/sites" element={<SitesPage />} />
           <Route path="/owners" element={<OwnersPage />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/settings" element={<SettingsPage />} />

@@ -9,13 +9,14 @@ import type {
   Notification,
   Owner,
   Project,
+  Site,
 } from '../types/models'
 
 interface AttachmentBackup extends Omit<Attachment, 'blob'> {
   blobBase64: string
 }
 
-interface BackupPayload {
+interface BackupPayloadV1 {
   version: 1
   exportedAt: string
   projects: Project[]
@@ -27,6 +28,13 @@ interface BackupPayload {
   attachments: AttachmentBackup[]
   notifications: Notification[]
 }
+
+interface BackupPayloadV2 extends Omit<BackupPayloadV1, 'version'> {
+  version: 2
+  sites: Site[]
+}
+
+type BackupPayload = BackupPayloadV1 | BackupPayloadV2
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -43,9 +51,10 @@ async function dataUrlToBlob(dataUrl: string) {
 }
 
 export async function exportBackup(): Promise<BackupPayload> {
-  const [projects, owners, customers, issues, comments, activities, attachments, notifications] =
+  const [projects, sites, owners, customers, issues, comments, activities, attachments, notifications] =
     await Promise.all([
       db.projects.toArray(),
+      db.sites.toArray(),
       db.owners.toArray(),
       db.customers.toArray(),
       db.issues.toArray(),
@@ -63,9 +72,10 @@ export async function exportBackup(): Promise<BackupPayload> {
   )
 
   return {
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     projects,
+    sites,
     owners,
     customers,
     issues,
@@ -92,7 +102,7 @@ export async function importBackup(file: File) {
   const raw = await file.text()
   const payload = JSON.parse(raw) as BackupPayload
 
-  if (payload.version !== 1) {
+  if (payload.version !== 1 && payload.version !== 2) {
     throw new Error('Unsupported backup version')
   }
 
@@ -105,6 +115,7 @@ export async function importBackup(file: File) {
 
   await repository.bulkImport({
     projects: payload.projects,
+    sites: payload.version === 2 ? payload.sites : [],
     owners: payload.owners,
     customers: payload.customers,
     issues: payload.issues,

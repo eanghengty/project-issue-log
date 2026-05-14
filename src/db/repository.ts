@@ -9,10 +9,18 @@ import type {
   Notification,
   Owner,
   Project,
+  Site,
 } from '../types/models'
+
+interface CreateSiteInput {
+  siteId: string
+  siteName: string
+  projectId: number
+}
 
 interface CreateIssueInput {
   projectId: number
+  siteRefId?: number
   title: string
   description: string
   status: Issue['status']
@@ -38,6 +46,20 @@ const normalizeValue = (value: unknown) => {
     return value
   }
   return String(value)
+}
+
+const normalizeSiteCode = (value: string) => value.trim()
+
+async function assertUniqueSiteId(siteId: string, excludeId?: number) {
+  const normalized = normalizeSiteCode(siteId).toLowerCase()
+  const sites = await db.sites.toArray()
+  const duplicate = sites.find(
+    (site) => site.id !== excludeId && normalizeSiteCode(site.siteId).toLowerCase() === normalized,
+  )
+
+  if (duplicate) {
+    throw new Error(`Site ID "${siteId}" already exists.`)
+  }
 }
 
 const addActivity = async (entry: Omit<ActivityEntry, 'id' | 'createdAt'>) => {
@@ -67,6 +89,56 @@ async function nextIssueNumber(projectId: number): Promise<string> {
   return `${code}-${maxSequence + 1}`
 }
 
+async function applyIssueUpdate(id: number, changes: Partial<Issue>, actor: string) {
+  const previous = await db.issues.get(id)
+  if (!previous) {
+    throw new Error('Issue not found')
+  }
+
+  const nextStatus = changes.status ?? previous.status
+  const updatedAt = nowIso()
+  const patch: Partial<Issue> = {
+    ...changes,
+    updatedAt,
+  }
+
+  if ((nextStatus === 'Resolved' || nextStatus === 'Closed') && !previous.resolvedAt) {
+    patch.resolvedAt = updatedAt
+  }
+
+  if (nextStatus !== 'Resolved' && nextStatus !== 'Closed') {
+    patch.resolvedAt = undefined
+  }
+
+  await db.issues.update(id, patch)
+
+  const compareFields = Object.keys(changes) as (keyof Issue)[]
+  for (const field of compareFields) {
+    const oldValue = normalizeValue(previous[field])
+    const newValue = normalizeValue(changes[field])
+    if (oldValue === newValue) {
+      continue
+    }
+
+    await addActivity({
+      issueId: id,
+      type: field === 'status' ? 'status' : 'update',
+      field,
+      oldValue,
+      newValue,
+      actor,
+    })
+
+    if (field === 'status') {
+      await addNotification({
+        type: 'status',
+        issueId: id,
+        message: `${previous.issueNumber} changed status to ${newValue}`,
+      })
+    }
+  }
+}
+
 export const repository = {
   async createProject(input: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) {
     const timestamp = nowIso()
@@ -75,6 +147,60 @@ export const repository = {
 
   async updateProject(id: number, changes: Partial<Project>) {
     return db.projects.update(id, { ...changes, updatedAt: nowIso() })
+  },
+
+  async createSite(input: CreateSiteInput) {
+    const siteId = normalizeSiteCode(input.siteId)
+    if (!siteId) {
+      throw new Error('Site ID is required.')
+    }
+    if (!input.siteName.trim()) {
+      throw new Error('Site name is required.')
+    }
+
+    await assertUniqueSiteId(siteId)
+    const timestamp = nowIso()
+    return db.sites.add({
+      siteId,
+      siteName: input.siteName.trim(),
+      projectId: input.projectId,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+  },
+
+  async updateSite(id: number, changes: Partial<Site>) {
+    const existing = await db.sites.get(id)
+    if (!existing) {
+      throw new Error('Site not found')
+    }
+
+    const nextSiteId = changes.siteId ? normalizeSiteCode(changes.siteId) : existing.siteId
+    if (!nextSiteId) {
+      throw new Error('Site ID is required.')
+    }
+
+    const nextSiteName = changes.siteName?.trim() ?? existing.siteName
+    if (!nextSiteName) {
+      throw new Error('Site name is required.')
+    }
+
+    await assertUniqueSiteId(nextSiteId, id)
+    return db.sites.update(id, {
+      ...changes,
+      siteId: nextSiteId,
+      siteName: nextSiteName,
+      updatedAt: nowIso(),
+    })
+  },
+
+  async deleteSite(id: number) {
+    const usageCount = await db.issues.where('siteRefId').equals(id).count()
+    if (usageCount > 0) {
+      throw new Error('Cannot delete site because it is linked to existing issues.')
+    }
+
+    return db.sites.delete(id)
   },
 
   async createOwner(input: Omit<Owner, 'id' | 'createdAt'>) {
@@ -133,53 +259,46 @@ export const repository = {
 
   async updateIssue(id: number, changes: Partial<Issue>, actor = 'System') {
     return db.transaction('rw', db.issues, db.activities, db.notifications, async () => {
-      const previous = await db.issues.get(id)
-      if (!previous) {
-        throw new Error('Issue not found')
+      await applyIssueUpdate(id, changes, actor)
+    })
+  },
+
+  async updateIssueWithOptionalComment(
+    id: number,
+    changes: Partial<Issue>,
+    commentBody?: string,
+    actor = 'System User',
+  ) {
+    return db.transaction('rw', db.issues, db.comments, db.activities, db.notifications, async () => {
+      await applyIssueUpdate(id, changes, actor)
+
+      const trimmedComment = commentBody?.trim()
+      if (!trimmedComment) {
+        return
       }
 
-      const nextStatus = changes.status ?? previous.status
-      const updatedAt = nowIso()
-      const patch: Partial<Issue> = {
-        ...changes,
-        updatedAt,
-      }
+      const issue = await db.issues.get(id)
+      await db.comments.add({
+        issueId: id,
+        author: actor,
+        body: trimmedComment,
+        createdAt: nowIso(),
+      })
 
-      if ((nextStatus === 'Resolved' || nextStatus === 'Closed') && !previous.resolvedAt) {
-        patch.resolvedAt = updatedAt
-      }
+      await addActivity({
+        issueId: id,
+        type: 'comment',
+        field: 'comment',
+        oldValue: '',
+        newValue: trimmedComment,
+        actor,
+      })
 
-      if (nextStatus !== 'Resolved' && nextStatus !== 'Closed') {
-        patch.resolvedAt = undefined
-      }
-
-      await db.issues.update(id, patch)
-
-      const compareFields = Object.keys(changes) as (keyof Issue)[]
-      for (const field of compareFields) {
-        const oldValue = normalizeValue(previous[field])
-        const newValue = normalizeValue(changes[field])
-        if (oldValue === newValue) {
-          continue
-        }
-
-        await addActivity({
-          issueId: id,
-          type: field === 'status' ? 'status' : 'update',
-          field,
-          oldValue,
-          newValue,
-          actor,
-        })
-
-        if (field === 'status') {
-          await addNotification({
-            type: 'status',
-            issueId: id,
-            message: `${previous.issueNumber} changed status to ${newValue}`,
-          })
-        }
-      }
+      await addNotification({
+        type: 'comment',
+        issueId: id,
+        message: `New comment on ${issue?.issueNumber ?? `Issue #${id}`}`,
+      })
     })
   },
 
@@ -292,6 +411,7 @@ export const repository = {
   async clearAll() {
     return db.transaction('rw', db.tables, async () => {
       await db.projects.clear()
+      await db.sites.clear()
       await db.owners.clear()
       await db.customers.clear()
       await db.issues.clear()
@@ -304,6 +424,7 @@ export const repository = {
 
   async bulkImport(data: {
     projects: Project[]
+    sites: Site[]
     owners: Owner[]
     customers: Customer[]
     issues: Issue[]
@@ -316,6 +437,7 @@ export const repository = {
 
     return db.transaction('rw', db.tables, async () => {
       await db.projects.bulkAdd(data.projects)
+      await db.sites.bulkAdd(data.sites)
       await db.owners.bulkAdd(data.owners)
       await db.customers.bulkAdd(data.customers)
       await db.issues.bulkAdd(data.issues)

@@ -1,5 +1,13 @@
-import { useEffect, useState } from 'react'
-import type { Customer, Issue, IssuePriority, IssueStatus, Owner, Project } from '../../types/models'
+import { useEffect, useMemo, useState } from 'react'
+import type {
+  Customer,
+  Issue,
+  IssuePriority,
+  IssueStatus,
+  Owner,
+  Project,
+  Site,
+} from '../../types/models'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 
@@ -8,6 +16,7 @@ const priorities: IssuePriority[] = ['Low', 'Medium', 'High', 'Critical']
 
 interface IssueFormValues {
   projectId: number
+  siteRefId?: number
   title: string
   description: string
   status: IssueStatus
@@ -16,12 +25,14 @@ interface IssueFormValues {
   ownerId: number
   customerId: number
   dueDate: string
+  updateComment: string
 }
 
 interface IssueFormProps {
   open: boolean
   issue?: Issue
   projects: Project[]
+  sites: Site[]
   owners: Owner[]
   customers: Customer[]
   onClose: () => void
@@ -30,6 +41,7 @@ interface IssueFormProps {
 
 const emptyValues: IssueFormValues = {
   projectId: 0,
+  siteRefId: undefined,
   title: '',
   description: '',
   status: 'Open',
@@ -38,16 +50,41 @@ const emptyValues: IssueFormValues = {
   ownerId: 0,
   customerId: 0,
   dueDate: '',
+  updateComment: '',
 }
 
-export function IssueForm({ open, issue, projects, owners, customers, onClose, onSave }: IssueFormProps) {
+const siteOptionLabel = (site: Site) => `${site.siteId} - ${site.siteName}`
+
+function resolveSiteSelection(input: string, projectSites: Site[]) {
+  const trimmed = input.trim()
+  if (!trimmed) {
+    return undefined
+  }
+
+  const matched =
+    projectSites.find((site) => siteOptionLabel(site).toLowerCase() === trimmed.toLowerCase()) ??
+    projectSites.find((site) => site.siteId.toLowerCase() === trimmed.toLowerCase()) ??
+    projectSites.find((site) => site.siteName.toLowerCase() === trimmed.toLowerCase())
+
+  return matched?.id
+}
+
+export function IssueForm({ open, issue, projects, sites, owners, customers, onClose, onSave }: IssueFormProps) {
   const [values, setValues] = useState<IssueFormValues>(emptyValues)
   const [saving, setSaving] = useState(false)
+  const [siteInput, setSiteInput] = useState('')
+
+  const currentProjectSites = useMemo(
+    () => sites.filter((site) => site.projectId === values.projectId),
+    [sites, values.projectId],
+  )
 
   useEffect(() => {
     if (issue) {
+      const selectedSite = sites.find((site) => site.id === issue.siteRefId)
       setValues({
         projectId: issue.projectId,
+        siteRefId: issue.siteRefId,
         title: issue.title,
         description: issue.description,
         status: issue.status,
@@ -56,7 +93,9 @@ export function IssueForm({ open, issue, projects, owners, customers, onClose, o
         ownerId: issue.ownerId,
         customerId: issue.customerId,
         dueDate: issue.dueDate ? issue.dueDate.slice(0, 10) : '',
+        updateComment: '',
       })
+      setSiteInput(selectedSite ? siteOptionLabel(selectedSite) : '')
       return
     }
 
@@ -68,7 +107,20 @@ export function IssueForm({ open, issue, projects, owners, customers, onClose, o
       status: prev.status,
       priority: prev.priority,
     }))
-  }, [issue, projects, owners, customers, open])
+    setSiteInput('')
+  }, [issue, projects, owners, customers, sites, open])
+
+  useEffect(() => {
+    if (!values.siteRefId) {
+      return
+    }
+
+    const stillValid = currentProjectSites.some((site) => site.id === values.siteRefId)
+    if (!stillValid) {
+      setValues((prev) => ({ ...prev, siteRefId: undefined }))
+      setSiteInput('')
+    }
+  }, [currentProjectSites, values.siteRefId])
 
   const canSubmit =
     values.projectId > 0 && values.ownerId > 0 && values.customerId > 0 && values.title.trim().length > 2
@@ -97,7 +149,15 @@ export function IssueForm({ open, issue, projects, owners, customers, onClose, o
             <select
               className="h-10 w-full rounded-lg border border-slate-200 px-3"
               value={values.projectId}
-              onChange={(event) => setValues((prev) => ({ ...prev, projectId: Number(event.target.value) }))}
+              onChange={(event) => {
+                const nextProjectId = Number(event.target.value)
+                const currentSite = sites.find((site) => site.id === values.siteRefId)
+                const nextSiteRefId =
+                  currentSite && currentSite.projectId === nextProjectId ? currentSite.id : undefined
+
+                setValues((prev) => ({ ...prev, projectId: nextProjectId, siteRefId: nextSiteRefId }))
+                setSiteInput(nextSiteRefId && currentSite ? siteOptionLabel(currentSite) : '')
+              }}
             >
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
@@ -105,6 +165,29 @@ export function IssueForm({ open, issue, projects, owners, customers, onClose, o
                 </option>
               ))}
             </select>
+          </label>
+
+          <label className="space-y-1 text-sm text-slate-600">
+            Site (autocomplete)
+            <input
+              list="site-options"
+              className="h-10 w-full rounded-lg border border-slate-200 px-3"
+              placeholder="Type site ID or name"
+              value={siteInput}
+              onChange={(event) => {
+                const nextInput = event.target.value
+                setSiteInput(nextInput)
+                setValues((prev) => ({
+                  ...prev,
+                  siteRefId: resolveSiteSelection(nextInput, currentProjectSites),
+                }))
+              }}
+            />
+            <datalist id="site-options">
+              {currentProjectSites.map((site) => (
+                <option key={site.id} value={siteOptionLabel(site)} />
+              ))}
+            </datalist>
           </label>
 
           <label className="space-y-1 text-sm text-slate-600">
@@ -208,6 +291,18 @@ export function IssueForm({ open, issue, projects, owners, customers, onClose, o
               onChange={(event) => setValues((prev) => ({ ...prev, dueDate: event.target.value }))}
             />
           </label>
+
+          {issue ? (
+            <label className="space-y-1 text-sm text-slate-600 md:col-span-2">
+              Update Comment (optional)
+              <textarea
+                className="min-h-20 w-full rounded-lg border border-slate-200 px-3 py-2"
+                placeholder="Add a comment about this update"
+                value={values.updateComment}
+                onChange={(event) => setValues((prev) => ({ ...prev, updateComment: event.target.value }))}
+              />
+            </label>
+          ) : null}
         </div>
 
         <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
