@@ -14,8 +14,13 @@ Issue Log Tracker is a local-first React SPA for tracking issues across projects
 ## Current Product Rules (Do Not Regress)
 - Project-to-owner/customer linking is managed in `Projects` page via the Assignments panel (project-centric UX).
 - `Owners` and `Customers` pages are profile-management pages; do not reintroduce editable project-link checklists there.
+- `Settings` page is backup/data-management focused; do not reintroduce demo-data loading actions.
+- Deleting an owner/customer is allowed and must reassign linked issues to `Unassigned` (`ownerId`/`customerId` = `0`) while removing related project links.
+- Issue lists/details must show `Unassigned` fallback text when owner/customer records are missing.
 - Issue modal owner/customer options are strictly scoped to the selected project links.
 - Edit Issue modal comment actor must be chosen from project-linked participants (grouped `Owners` and `Customers`), not free text defaults.
+- Edit Issue modal supports backdated comments using a required date (date-only) when a new update comment is entered.
+- Existing comments are editable in the Edit Issue modal comment history (text + date), and edits must create activity log entries.
 - Issue comments are displayed in chronological order (oldest to newest).
 
 ## Run and Test Commands
